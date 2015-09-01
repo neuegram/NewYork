@@ -1,0 +1,1 @@
+windbg -G -Q -c "$$><events.wds;g" <command> %1
