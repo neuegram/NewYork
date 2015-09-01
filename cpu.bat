@@ -1,0 +1,1 @@
+typeperf "\Process(%1)\%% Processor Time" -sc 1
