@@ -10,22 +10,26 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 func main() {
-
+	Fuzz(os.Args[1], os.Args[2], os.Args[3])
 }
 
-func Fuzz(dirname string, extension string) {
+func Fuzz(targetProc string, dirname string, extension string) {
+	if !strings.HasSuffix(dirname, "\\") {
+		dirname += "\\"
+	}
 	files, err := ioutil.ReadDir(dirname)
 	if err != nil {
 		fmt.Println(err)
 	}
 	MakeEvents()
-	EnableGFlags("vlc.exe")
+	EnableGFlags(targetProc)
 	for {
 		for i := range files {
-			buf, err := ioutil.ReadFile(files[i].Name())
+			buf, err := ioutil.ReadFile(dirname + files[i].Name())
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -43,8 +47,14 @@ func Fuzz(dirname string, extension string) {
 				fmt.Println(err)
 			}
 			fuzzed.Close()
-			WinDbg("vlc.exe --play-and-exit" + fuzzed.Name())
+			for {
+				if _, err := os.Stat(fuzzed.Name()); err == nil {
+					break
+				}
+			}
+			WinDbg(fuzzed.Name())
 			CrashHandler(filename, extension)
+			CpuKill(targetProc, true)
 		}
 	}
 }
@@ -66,9 +76,8 @@ func MakeEvents() {
 	file.Close()
 }
 
-func EnableGFlags(targetCmd string) {
-	cmdStr := "gflags.exe /p enable " + targetCmd + " /full"
-	cmd := exec.Command(cmdStr)
+func EnableGFlags(targetProc string) {
+	cmd := exec.Command("cmd", "/c", "gflags /p /enable "+targetProc+" /full")
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
 	}
@@ -93,12 +102,13 @@ func MillerMutate(buf []byte) []byte {
 	return buf
 }
 
-func WinDbg(targetCmd string) {
-	cmdStr := "windbg.exe -G -Q -c \"$$><events.wds;g\" " + targetCmd
-	cmd := exec.Command(cmdStr)
-	if err := cmd.Run(); err != nil {
-		fmt.Println(err)
-	}
+func WinDbg(filename string) {
+	go func(filename string) {
+		cmd := exec.Command("cmd", "/c", "debug.bat", filename)
+		if err := cmd.Run(); err != nil {
+			fmt.Println(err)
+		}
+	}(filename)
 }
 
 func CrashHandler(filename string, extension string) {
@@ -131,5 +141,61 @@ func CrashHandler(filename string, extension string) {
 				}
 			}
 		}
+		if err = os.Remove("crash.log"); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func TaskList(targetProc string) bool {
+	cmd := exec.Command("tasklist")
+	out, err := cmd.Output()
+	outStr := string(out)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if strings.Contains(outStr, targetProc) {
+		return true
+	}
+	return false
+}
+
+func TaskKill(targetProc string) {
+	cmd := exec.Command("taskkill", "/im", targetProc, "/f")
+	if err := cmd.Run(); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func CpuKill(targetProc string, launching bool) {
+	cmd := exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+	out, err := cmd.Output()
+	outStr := string(out)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if launching {
+		for strings.Contains(outStr, "0.000000") || strings.Contains(outStr, "-1") {
+			cmd = exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+			out, err = cmd.Output()
+			outStr = string(out)
+			if err != nil {
+				fmt.Println(err)
+			}
+			time.Sleep(1)
+		}
+	}
+	cmd = exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+	out, err = cmd.Output()
+	outStr = string(out)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if strings.Contains(outStr, "-1") {
+		fmt.Printf("%s not running\n", targetProc)
+	} else if strings.Contains(outStr, "0.000000") {
+		TaskKill("windbg.exe")
+	} else {
+		CpuKill(targetProc, false)
 	}
 }
