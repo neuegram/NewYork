@@ -1,0 +1,2 @@
+sxe -c ".logopen crash.log;.load msec.dll;!exploitable;.logclose crash.log;qq" -h av
+sxe -c ".logopen crash.log;.load msec.dll;!exploitable;.logclose crash.log;qq" -h bpe
