@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	Fuzz(os.Args[1], os.Args[2], os.Args[3])
+	Fuzz(os.Args[1], os.Args[2], os.Args[3], os.Args[4])
 }
 
 func Fuzz(targetProc string, dirname string, extension string, timeout int) {
