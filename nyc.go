@@ -199,7 +199,18 @@ func TimerKill(targetProc string, launching bool, timeout time.Duration) {
 			time.Sleep(1)
 		}
 		time.Sleep(timeout)
+		cmd = exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+	out, err = cmd.Output()
+	outStr = string(out)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if strings.Contains(outStr, "-1") {
+		fmt.Printf("%s not running\n", targetProc)
+	} else if strings.Contains(outStr, "0.000000") {
 		TaskKill("windbg.exe")
+	} else {
+		TimerKill(targetProc, false, 1)
 	}
 
 }
