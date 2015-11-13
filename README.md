@@ -34,9 +34,13 @@ In order to cross-compile, you must set the environment variables **GOOS** and *
 
 ### Usage
 
-Generic: `nyc.exe <target process> <minset> <filetype>`
+Generic: `nyc.exe <target process> <minset> <filetype> <timeout>`
 
-Example: `nyc.exe vlc.exe minset .mp3`
+Example: `nyc.exe vlc.exe minset .mp3 10`
+
+### Process Termination
+
+It's important to note that if `<timeout>` <= 0, then the process will be terminated when the process' CPU usage is 0. Otherwise, the process will be terminated after it has been detected as running (CPU usage not 0 or -1), in addition to the specified delay.
 
 ### TODO
 
