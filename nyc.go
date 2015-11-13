@@ -143,9 +143,13 @@ func CrashHandler(filename string, extension string) {
 				if err = os.Remove(filename); err != nil {
 					fmt.Println(err)
 				}
+				if err = os.Remove("crash.log"); err != nil {
+					fmt.Println(err)
+				}
 			}
 		}
-		if err = os.Remove("crash.log"); err != nil {
+	} else {
+		if err = os.Remove(filename); err != nil {
 			fmt.Println(err)
 		}
 	}
