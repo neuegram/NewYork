@@ -17,7 +17,7 @@ func main() {
 	Fuzz(os.Args[1], os.Args[2], os.Args[3])
 }
 
-func Fuzz(targetProc string, dirname string, extension string) {
+func Fuzz(targetProc string, dirname string, extension string, timeout int) {
 	if !strings.HasSuffix(dirname, "\\") {
 		dirname += "\\"
 	}
@@ -53,8 +53,12 @@ func Fuzz(targetProc string, dirname string, extension string) {
 				}
 			}
 			WinDbg(fuzzed.Name())
+			if timeout <= 0 {
+				CpuKill(targetProc, true)
+			} else {
+				TimerKill(targetProc, true, timeout)
+			}
 			CrashHandler(filename, extension)
-			CpuKill(targetProc, true)
 		}
 	}
 }
@@ -161,10 +165,33 @@ func TaskList(targetProc string) bool {
 }
 
 func TaskKill(targetProc string) {
-	cmd := exec.Command("taskkill", "/im", targetProc, "/f")
+	cmd := exec.Command("taskkill", "/im windbg /f")
 	if err := cmd.Run(); err != nil {
 		fmt.Println(err)
 	}
+}
+
+func TimerKill(targetProc string, launching bool, timeout int) {
+	cmd := exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+	out, err := cmd.Output()
+	outStr := string(out)
+	if err != nil {
+		fmt.Println(err)
+	}
+	if launching {
+		for strings.Contains(outStr, "0.000000") || strings.Contains(outStr, "-1") {
+			cmd = exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+			out, err = cmd.Output()
+			outStr = string(out)
+			if err != nil {
+				fmt.Println(err)
+			}
+			time.Sleep(1)
+		}
+		time.Sleep(timeout)
+		TaskKill("windbg.exe")
+	}
+
 }
 
 func CpuKill(targetProc string, launching bool) {
