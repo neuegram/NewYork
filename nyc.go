@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -17,7 +18,7 @@ func main() {
 	Fuzz(os.Args[1], os.Args[2], os.Args[3], os.Args[4])
 }
 
-func Fuzz(targetProc string, dirname string, extension string, timeout time.Duration) {
+func Fuzz(targetProc string, dirname string, extension string, timeStr string) {
 	if !strings.HasSuffix(dirname, "\\") {
 		dirname += "\\"
 	}
@@ -25,6 +26,11 @@ func Fuzz(targetProc string, dirname string, extension string, timeout time.Dura
 	if err != nil {
 		fmt.Println(err)
 	}
+	timeInt, err := strconv.Atoi(timeStr)
+	if err != nil {
+		fmt.Println(err)
+	}
+	timeout := time.Duration(timeInt)
 	MakeEvents()
 	EnableGFlags(targetProc)
 	for {
@@ -175,7 +181,7 @@ func TaskKill(targetProc string) {
 	}
 }
 
-func TimerKill(targetProc string, launching bool, timeout int) {
+func TimerKill(targetProc string, launching bool, timeout time.Duration) {
 	cmd := exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
 	out, err := cmd.Output()
 	outStr := string(out)
