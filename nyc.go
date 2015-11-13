@@ -198,8 +198,9 @@ func TimerKill(targetProc string, launching bool, timeout time.Duration) {
 			}
 			time.Sleep(1)
 		}
-		time.Sleep(timeout)
-		cmd = exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
+	}
+	time.Sleep(timeout)
+	cmd = exec.Command("cpu.bat", targetProc[:len(targetProc)-4])
 	out, err = cmd.Output()
 	outStr = string(out)
 	if err != nil {
